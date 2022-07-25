@@ -4,19 +4,33 @@ import com.espertech.esper.common.client.EventBean;
 import com.espertech.esper.runtime.client.EPRuntime;
 import com.espertech.esper.runtime.client.EPStatement;
 import com.espertech.esper.runtime.client.UpdateListener;
+import org.parmenter.correlator.data.models.TemperatureReading;
+import org.parmenter.correlator.distribution.CorrelationEvent;
+import org.parmenter.correlator.distribution.EventRouter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DefaultCorrelationEventListener implements UpdateListener {
 
-    SubscriptionManager subsManager;
+    private static final Logger log = LoggerFactory.getLogger(DefaultCorrelationEventListener.class);
 
-    public DefaultCorrelationEventListener(SubscriptionManager subscriptionManager){
-        this.subsManager = subscriptionManager;
+    private final EventRouter eventRouter;
+    private final Subscription parentSusbcription;
+
+    public static DefaultCorrelationEventListener createEventListener(EventRouter eventRouter, Subscription parentSubscription){
+        return new DefaultCorrelationEventListener(eventRouter, parentSubscription);
+    }
+
+    private DefaultCorrelationEventListener(EventRouter eventRouter, Subscription parentSubscription){
+        this.eventRouter = eventRouter;
+        this.parentSusbcription = parentSubscription;
     }
 
     @Override
     public void update(EventBean[] newEvents, EventBean[] oldEvents, EPStatement statement, EPRuntime runtime) {
         EventBean event = newEvents[0];
-        System.out.printf("Event: %s", event.toString());
-        this.subsManager.getSubscriptionsForRule(rule)
+        log.info("Event: {}\n", event.toString());
+        CorrelationEvent correlationEvent = new CorrelationEvent(this.parentSusbcription);
+        eventRouter.deliver(correlationEvent);
     }
 }
